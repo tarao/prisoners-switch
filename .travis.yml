@@ -1,0 +1,8 @@
+language: go
+go:
+  - 1.x
+script:
+  - verifier/run
+env:
+  global:
+    - "PATH=$HOME/gopath/bin:$PATH"
