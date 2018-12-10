@@ -1,0 +1,17 @@
+#!/bin/sh
+
+set -e
+
+BIN="$(cd $(dirname "$0"); pwd)"
+ROOT="$(cd "$BIN"/..; pwd)"
+. "$BIN"/logger.sh
+verbose_level="$VERBOSE_LEVEL_INFO"
+
+cd "$ROOT"/strategy
+go list -f '{{range $imp := .Imports}}{{printf "%s\n" $imp}}{{end}}' | while read line; do
+    [ x"$line" = x ] || [ "$line" = 'github.com/tarao/prisoners-switch/rule' ] || {
+        die "(violation) detected an illegal import line: $line"
+    }
+done
+
+exit 0
