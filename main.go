@@ -90,6 +90,7 @@ func exit(success bool, msg string, games []game.Game) {
 	for _, g := range games {
 		result.Merge(g.Result())
 	}
+	result.Score /= uint64(len(games))
 
 	jsonResult, err := json.Marshal(result)
 	if err != nil {
