@@ -1,0 +1,35 @@
+#!/bin/sh
+
+set -e
+
+BIN="$(cd $(dirname "$0"); pwd)"
+ROOT="$(cd "$BIN"/..; pwd)"
+. "$BIN"/logger.sh
+verbose_level="$VERBOSE_LEVEL_INFO"
+
+# Check if there in no violation on importing external packages
+
+"$BIN"/check_imports
+
+# Run
+
+cd "$ROOT"
+go build
+json=$(./prisoners-switch || true)
+
+score=$(echo "$json" | jq -r '.score')
+steps=$(echo "$json" | jq -r '.steps')
+switches=$(echo "$json" | jq -r '.used_switches')
+msg=$(echo "$json" | jq -r '.message')
+
+# Report the result
+
+info result "[Score] $score"
+info result "[Steps] $steps"
+info result "[Used switches] $switches"
+
+[ $(echo "$json" | jq -r '.success') = 'true' ] || die "$msg"
+
+info result "$msg"
+
+exit 0
