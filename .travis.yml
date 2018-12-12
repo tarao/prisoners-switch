@@ -6,3 +6,6 @@ script:
 env:
   global:
     - "PATH=$HOME/gopath/bin:$PATH"
+notifications:
+  webhooks:
+    - https://script.google.com/macros/s/AKfycbyVk_1CNrncoctisASbNKRPRnPTLGn_8wRjoA3MFUSXSiwWhbiQ/exec?action=report
