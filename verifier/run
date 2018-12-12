@@ -5,11 +5,14 @@ set -e
 BIN="$(cd $(dirname "$0"); pwd)"
 ROOT="$(cd "$BIN"/..; pwd)"
 . "$BIN"/logger.sh
+. "$BIN"/ci.sh
 verbose_level="$VERBOSE_LEVEL_INFO"
 
 # Check if there in no violation on importing external packages
 
-"$BIN"/check_imports
+imports_ok=0
+"$BIN"/check_imports || exit 1
+imports_ok=1
 
 # Run
 
@@ -28,7 +31,7 @@ info result "[Score] $score"
 info result "[Steps] $steps"
 info result "[Used switches] $switches"
 
-[ $(echo "$json" | jq -r '.success') = 'true' ] || die "$msg"
+[ "$(echo "$json" | jq -r '.success')" = 'true' ] || die "$msg"
 
 info result "$msg"
 
