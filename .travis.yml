@@ -3,6 +3,8 @@ go:
   - 1.x
 script:
   - verifier/run
+after_script:
+  - sleep 5
 env:
   global:
     - "PATH=$HOME/gopath/bin:$PATH"
