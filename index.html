@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Answer to the Prisoners and Switch Room Problem</title>
+    <style>
+     body {
+       color: #333;
+     }
+
+     #container {
+       margin: 1em;
+       padding: 0 2em;
+       max-width: 1000px;
+       min-width: 540px;
+       border: solid 2px #ccc;
+       border-radius: 3px;
+     }
+     #container[data-state="failure"],
+     #container[data-state="error"] {
+       background: linear-gradient(to right,#db4545 0,#db4545 10px,#fff 10px,#fff 100%) no-repeat;
+     }
+     #container[data-state="success"] {
+       background: linear-gradient(to right,#39aa56 0,#39aa56 10px,#fff 10px,#fff 100%) no-repeat;
+     }
+
+     h1 {
+       border-bottom: solid 1px #ccc;
+       padding-bottom: 0.2em;
+       margin-bottom: 0.5em;
+     }
+
+     .status-line {
+       vertical-align: bottom;
+     }
+
+     .status-line + * {
+       clear: both;
+     }
+
+     .status-line > a {
+       display: inline-block;
+       float: left;
+       text-decoration: none;
+       color: white;
+       font-family: DejaVu Sans,Verdana,Geneva,sans-serif;
+     }
+     .status-line > a > * {
+       float: left;
+       display: block;
+       margin: 0;
+       height: 2.3rem;
+       line-height: 2rem;
+       font-size: 1.5rem;
+       box-sizing: border-box;
+       text-shadow: 1px 3px 1px rgba(0, 0, 0, 0.5);
+     }
+     .status-line .pull-request-number {
+       background-color: #555;
+       padding: 4px 10px;
+       border-radius: 4px 0 0 4px;
+     }
+     .status-line .state {
+       padding: 4px 10px;
+     }
+     .status-line .state[data-state="failure"],
+     .status-line .state[data-state="error"] {
+       background-color: #bd2c00;
+     }
+     .status-line .state[data-state="success"] {
+       background-color: #6cc644;
+     }
+     .status-line .avatar {
+       border-radius: 0 4px 4px 0;
+     }
+     .status-line .message {
+       float: left;
+       display: block;
+       height: 2.3rem;
+       line-height: 2rem;
+       font-size: 1.5rem;
+       padding: 4px 0;
+       margin-left: 0.8em;
+     }
+
+     .score,
+     .rank {
+       margin-top: 0.5em;
+       margin-bottom: 0.5em;
+       float: left;
+       color: #666;
+       font-style: italic;
+       font-size: 400%;
+     }
+     .score:before {
+       content: "Score";
+       margin-right: 0.5em;
+     }
+     .rank:before {
+       content: "Rank";
+       margin-right: 0.5em;
+     }
+     .rank {
+       margin-left: 2em;
+     }
+     .rank + * {
+       clear: both;
+     }
+
+     .details > dt {
+       display: block;
+       width: 8em;
+       float: left;
+       clear: both;
+       color: #777;
+     }
+     .details > dd {
+       float: left;
+     }
+     .details:after {
+       content: " ";
+       display: block;
+       clear: both;
+     }
+
+     footer {
+       margin: 2em 0 1em 0;
+       padding-top: 0.5em;
+       text-align: right;
+       border-top: solid 1px #666;
+       clear: both;
+     }
+
+     footer a {
+       color: #666;
+     }
+    </style>
+  </head>
+  <body>
+    <section id="container" data-bind="@data-state=state">
+      <h1>Answer to the Prisoners and Switch Room Problem</h1>
+
+      <div class="status-line">
+        <a data-bind="@href=url">
+          <span class="pull-request-number" data-bind="$content=pr">#</span>
+          <span class="state" data-bind="@data-state=state,$content=state"></span><img class="avatar" data-bind="@src=avatar,@title=user" />
+        </a>
+        <span class="message" data-bind="$content=msg"></span>
+      </div>
+
+      <div class="score" data-bind="$content=score"></div>
+      <div class="rank" data-bind="$content=rank"></div>
+
+      <dl class="details">
+        <dt>Steps</dt>
+        <dd data-bind="$content=steps"></dd>
+        <dt>Used Switches</dt>
+        <dd data-bind="$content=sw"></dd>
+        <dt>Timestamp</dt>
+        <dd data-bind="$content=timestamp"></dd>
+      </dl>
+
+      <footer><address><a href="https://github.com/tarao/prisoners-switch/">tarao/prisoners-switch</a></address></footer>
+    </div>
+
+    <script>
+     (function() {
+       var Template = (function() {
+         var parseBindings = function(str) {
+           return str.split(/\s*,\s*/).map(function(b) {
+             return b.split(/[=]/);
+           });
+         };
+         var resolve = function(data, keys) {
+           return keys.split(/[.]/).reduce(function(r, x) {
+             return (r||{})[x];
+           }, data);
+         };
+         return {
+           bind: function(node, data) {
+             if (!node || !node.getAttribute) return node;
+             var bindings = parseBindings(node.getAttribute('data-bind') || '');
+             bindings.forEach(function(b) {
+               var k = b[0].substring(1);
+               var v = resolve(data, b[1] || '');
+               /^@/.test(b[0]) && node.setAttribute(k, v);
+               /^%/.test(b[0]) && ( node.style[k] = v );
+               '$content' == b[0] && node.appendChild(document.createTextNode(v));
+             });
+             for (var i=0; i < node.childNodes.length; i++) {
+               this.bind(node.childNodes[i], data);
+             }
+             return node;
+           }
+         };
+       })();
+
+       var params = location
+         .search.replace(/^[?]/, '')
+         .split('&')
+         .reduce(function(r, param) {
+           var p = param.split('=', 2)
+           r[p[0]] = decodeURIComponent(p[1]);
+           return r;
+         }, {});
+
+       Template.bind(document.querySelector('#container'), params);
+     })();
+    </script>
+  </body>
+</html>
