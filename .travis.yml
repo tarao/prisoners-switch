@@ -3,6 +3,9 @@ go:
   - 1.x
 script:
   - verifier/run
+branches:
+  except:
+    - framework
 env:
   global:
     - "PATH=$HOME/gopath/bin:$PATH"
