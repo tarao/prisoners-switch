@@ -38,12 +38,6 @@ function doPost(e) {
       // https://docs.travis-ci.com/user/notifications#webhooks-delivery-format
       postReport(JSON.parse(e.parameter.payload));
     }
-
-    debug(JSON.stringify({
-      parameter: e.parameter,
-      query: e.queryString,
-      postData: e.postData ? e.postData.getDataAsString() : null
-    }));
   } catch (err) {
     debug(JSON.stringify({
       error: err,
