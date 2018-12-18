@@ -76,7 +76,7 @@ func main() {
 
 	select {
 	case <-done:
-		exit(true, "All game passed", fairGames)
+		exit(true, "All games passed", fairGames)
 	case <-time.After(300 * time.Second):
 		exit(false, "Timed out", fairGames)
 	}
