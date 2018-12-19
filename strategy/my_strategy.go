@@ -28,9 +28,9 @@ type prisoner struct {
 	remaining int
 
 	// worker fields.
-	initialState int
+	initialState         int
 	initialStateModified bool
-	incremented bool
+	incremented          bool
 }
 
 func (p *prisoner) Enter(room rule.Room) {
@@ -54,8 +54,7 @@ func (p *prisoner) workerEnter(room rule.Room) {
 	p.initialStateModified = true
 
 	if !p.incremented && c < 3 {
-		c++
-		setCounter(room, c)
+		setCounter(room, c+1)
 		p.incremented = true
 	}
 }
@@ -94,10 +93,10 @@ func getCounter(room rule.Room) int {
 	return c
 }
 
-func setCounter(room rule.Room, n int) {
+func setCounter(room rule.Room, c int) {
 	sa, sb := room.TakeSwitchA(), room.TakeSwitchB()
-	a := (n % 2) != 0
-	b := (n / 2) != 0
+	a := (c % 2) != 0
+	b := (c / 2) != 0
 	if sa.State() != a {
 		sa.Toggle()
 	}
