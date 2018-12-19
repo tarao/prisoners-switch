@@ -30,25 +30,17 @@ type prisoner struct {
 	iAmCounter    bool
 	isInitialized bool
 
-	// 数え役用
 	counter int
 	shout   chan rule.Shout
 
-	// その他用
 	history History
 }
 
 /*
-カウント役と、それ以外でわける。カウント役は
-counterA 01
-counterB 10
-の数をカウントする。自分以外の囚人はTotalPrisoners-1人いるので、counterがそこまで進んだら終了。
-ただし、カウント役に最初に回ってきた時に01だった場合には、それが囚人によるものか初期配置によるものかどうか確定できない。
-そのため、その場合にはcounterAを１減らす。
-
-スイッチ一個だとあまり工夫の余地がなくて、同じ考えで2(n-1)回カウントすれば良い。
-
-*/
+数え役は必ず状態を変化させる。(00->01, それ以外は00へ)
+その他は、「状態変化」するまで待機、状態変化したらインクリメントを実行。
+この方法だと、カウンターの2ビットが活かせる
+ */
 
 func (p *prisoner) Enter(room rule.Room) {
 	if rule.TotalPrisoners == 1 {
@@ -109,7 +101,6 @@ func (p *prisoner) Enter(room rule.Room) {
 		p.history = Switched
 		return
 	}
-	// 数え役の処理
 	count := 0;
 	if (aIsOn) {
 		count += 1;
@@ -123,7 +114,7 @@ func (p *prisoner) Enter(room rule.Room) {
 		p.isInitialized = true
 	}
 	p.counter += count;
-	if(p.counter == rule.TotalPrisoners-1){
+	if (p.counter == rule.TotalPrisoners-1) {
 		p.shout <- rule.Triumph
 		return
 	}
