@@ -11,21 +11,31 @@ type myStrategy struct {
 }
 
 func (s *myStrategy) NewPrisoner(number int, shout chan rule.Shout) rule.Prisoner {
-	return &prisoner{ shout: shout, iAmCounter: number == 0}
+	return &prisoner{shout: shout, iAmCounter: number == 0}
 }
 
+type History int
+
+const (
+	Initial History = iota
+	AoffBoff
+	AonBoff
+	AoffBon
+	AonBon
+	Ready     // seen state change, but could not switch
+	Switched  // already switched
+)
+
 type prisoner struct {
-	iAmCounter   bool
+	iAmCounter    bool
+	isInitialized bool
 
 	// 数え役用
-	isInitialized bool
-	counterA      int
-	counterB      int
-	shout         chan rule.Shout
+	counter int
+	shout   chan rule.Shout
 
 	// その他用
-	switchedA bool
-	switchedB bool
+	history History
 }
 
 /*
@@ -50,59 +60,83 @@ func (p *prisoner) Enter(room rule.Room) {
 	aIsOn := room.TakeSwitchA().State()
 	bIsOn := room.TakeSwitchB().State()
 	if !p.iAmCounter {
-		if aIsOn || bIsOn {
-			// 00以外の状態からは何もしない
+		if p.history == Switched {
+			// already switched
+			return;
+		}
+		if p.history == Initial {
+			// capture
+			if aIsOn && bIsOn {
+				p.history = AonBon
+			} else if aIsOn {
+				p.history = AonBoff
+			} else if bIsOn {
+				p.history = AoffBon
+			} else {
+				p.history = AoffBoff
+			}
 			return
 		}
-		if !p.switchedA {
-			// 1st time
+		if aIsOn && bIsOn {
+			if p.history != AonBon {
+				p.history = Ready
+			}
+		} else if aIsOn {
+			if p.history != AonBoff {
+				p.history = Ready
+			}
+		} else if bIsOn {
+			if p.history != AoffBon {
+				p.history = Ready
+			}
+		} else {
+			if p.history != AoffBoff {
+				p.history = Ready
+			}
+		}
+		if (p.history != Ready) {
+			return
+		}
+		// have seen change. ready to move
+		if aIsOn && bIsOn {
+			return; // cannot increment
+		} else if aIsOn { // 01 -> 10
 			room.TakeSwitchA().Toggle()
-			p.switchedA = true
-			return
-		}
-		if !p.switchedB {
-			// 2nd time
 			room.TakeSwitchB().Toggle()
-			p.switchedB = true
-			return
+		} else { // 10 -> 11 , 00 -> 01
+			room.TakeSwitchA().Toggle()
 		}
-		// 3rd time and further
+		p.history = Switched
 		return
 	}
 	// 数え役の処理
-	if !p.isInitialized {
-		// 初回アクセスの処理。
-		if aIsOn && !bIsOn {
-			// この組み合わせの場合、初期配置によるものか初回カウントか区別できない
-			// カウントの回数を１回補正する
-			p.counterA -= 1;
-		}
-		if aIsOn {
-			room.TakeSwitchA().Toggle()
-		}
-		if bIsOn {
-			room.TakeSwitchB().Toggle()
-		}
-		p.isInitialized = true;
-		return;
-	}
+	count := 0;
 	if (aIsOn) {
-		p.counterA += 1;
-		if (p.counterA == rule.TotalPrisoners-1) {
-			p.shout <- rule.Triumph
-			return
-		}
-		room.TakeSwitchA().Toggle()
-		return
+		count += 1;
 	}
 	if (bIsOn) {
-		p.counterB += 1;
-		if (p.counterB == rule.TotalPrisoners-1) {
-			p.shout <- rule.Triumph
-			return
-		}
-		room.TakeSwitchB().Toggle()
+		count += 2;
+	}
+	if !p.isInitialized {
+		// ignore current count
+		count = 0;
+		p.isInitialized = true
+	}
+	p.counter += count;
+	if(p.counter == rule.TotalPrisoners-1){
+		p.shout <- rule.Triumph
 		return
 	}
 
+	if !aIsOn && !bIsOn { //00 -> 01
+		p.counter -= 1;
+		room.TakeSwitchA().Toggle()
+		return
+	}
+	if (aIsOn) {
+		room.TakeSwitchA().Toggle()
+	}
+	if (bIsOn) {
+		room.TakeSwitchB().Toggle()
+	}
 }
