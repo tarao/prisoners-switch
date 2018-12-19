@@ -53,8 +53,8 @@ func (p *prisoner) workerEnter(room rule.Room) {
 	}
 	p.initialStateModified = true
 
-	if !p.incremented && c < 3 {
-		setCounter(room, c+1)
+	if !p.incremented && c < 1 {
+		setCounter(room, 1)
 		p.incremented = true
 	}
 }
@@ -82,25 +82,18 @@ func (p *prisoner) collectorEnter(room rule.Room) {
 }
 
 func getCounter(room rule.Room) int {
-	sa, sb := room.TakeSwitchA(), room.TakeSwitchB()
+	sa := room.TakeSwitchA()
 	c := 0
 	if sa.State() {
 		c += 1
-	}
-	if sb.State() {
-		c += 2
 	}
 	return c
 }
 
 func setCounter(room rule.Room, c int) {
-	sa, sb := room.TakeSwitchA(), room.TakeSwitchB()
-	a := (c % 2) != 0
-	b := (c / 2) != 0
+	sa := room.TakeSwitchA()
+	a := c != 0
 	if sa.State() != a {
 		sa.Toggle()
-	}
-	if sb.State() != b {
-		sb.Toggle()
 	}
 }
