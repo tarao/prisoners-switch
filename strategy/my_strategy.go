@@ -25,7 +25,7 @@ type prisoner struct {
 	initialized bool
 
 	// collector fields.
-	remaining   int
+	remaining int
 
 	// worker fields.
 	initialState         int
@@ -61,7 +61,7 @@ func (p *prisoner) workerEnter(room rule.Room) {
 
 func (p *prisoner) collectorEnter(room rule.Room) {
 	c := getCounter(room)
-	defer func(){
+	defer func() {
 		if c == 0 {
 			// change switch state to notify workers that the collector is ready.
 			setCounter(room, 1)
