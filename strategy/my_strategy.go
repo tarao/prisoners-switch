@@ -27,7 +27,8 @@ type prisoner struct {
 	remaining int
 
 	// worker fields.
-	lastSeen    int
+	initialState int
+	initialStateModified bool
 	incremented bool
 }
 
@@ -42,13 +43,14 @@ func (p *prisoner) Enter(room rule.Room) {
 func (p *prisoner) workerEnter(room rule.Room) {
 	c := getCounter(room)
 	if !p.initialized {
-		p.lastSeen = c
+		p.initialState = c
 		p.initialized = true
 		return
 	}
-	if p.lastSeen == c {
+	if !p.initialStateModified && p.initialState == c {
 		return
 	}
+	p.initialStateModified = true
 
 	if !p.incremented && c < 3 {
 		c++
