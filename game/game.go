@@ -288,17 +288,17 @@ func (g *fairGame) Start(strategy rule.Strategy, numPrisoners int) <-chan bool {
 	return ch
 }
 
-// NewMotalGame creates a new game in which prisoner can never win
-func NewMotalGame(logger *Logger) Game {
-	return &motalGame{newGame(logger), -1}
+// NewMortalGame creates a new game in which prisoner can never win
+func NewMortalGame(logger *Logger) Game {
+	return &mortalGame{newGame(logger), -1}
 }
 
-type motalGame struct {
+type mortalGame struct {
 	*game
 	skippedPrisoner int32
 }
 
-func (g *motalGame) Start(strategy rule.Strategy, numPrisoners int) <-chan bool {
+func (g *mortalGame) Start(strategy rule.Strategy, numPrisoners int) <-chan bool {
 	result := make(chan bool, 2)
 
 	ch := g.initialize(strategy, numPrisoners)

@@ -47,7 +47,7 @@ func main() {
 	}
 
 	for i := 0; i < totalGames; i++ {
-		g := game.NewMotalGame(&game.Logger{
+		g := game.NewMortalGame(&game.Logger{
 			Game:     fmt.Sprintf("#%d", i+len(fairGames)+1),
 			LogLevel: logLevel,
 			Writer:   os.Stderr,
