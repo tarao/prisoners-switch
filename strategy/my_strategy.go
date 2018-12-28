@@ -15,7 +15,7 @@ func (s *myStrategy) NewPrisoner(number int, shout chan rule.Shout) rule.Prisone
 	return &prisoner{
 		shout:       shout,
 		isCollector: number == 0,
-		remaining:   rule.TotalPrisoners - 1, // number of workers not reporting yet
+		remaining:   rule.TotalPrisoners - 1, // number of reporters not reporting yet
 	}
 }
 
@@ -27,21 +27,21 @@ type prisoner struct {
 	// collector fields.
 	remaining int
 
-	// worker fields.
+	// reporter fields.
 	initialState         int
 	initialStateModified bool
-	incremented          bool
+	reported          bool
 }
 
 func (p *prisoner) Enter(room rule.Room) {
 	if p.isCollector {
 		p.collectorEnter(room)
 	} else {
-		p.workerEnter(room)
+		p.reporterEnter(room)
 	}
 }
 
-func (p *prisoner) workerEnter(room rule.Room) {
+func (p *prisoner) reporterEnter(room rule.Room) {
 	c := getCounter(room)
 	if !p.initialized {
 		p.initialState = c
@@ -63,7 +63,7 @@ func (p *prisoner) collectorEnter(room rule.Room) {
 	c := getCounter(room)
 	defer func() {
 		if c == 0 {
-			// change switch state to notify workers that the collector is ready.
+			// change switch state to notify reporters that the collector is ready.
 			setCounter(room, 1)
 			p.remaining++
 		} else {
