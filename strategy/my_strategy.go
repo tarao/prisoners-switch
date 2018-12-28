@@ -30,7 +30,7 @@ type prisoner struct {
 	// reporter fields.
 	initialState         int
 	initialStateModified bool
-	reported          bool
+	reported             bool
 }
 
 func (p *prisoner) Enter(room rule.Room) {
@@ -53,9 +53,9 @@ func (p *prisoner) reporterEnter(room rule.Room) {
 	}
 	p.initialStateModified = true
 
-	if !p.incremented && c < 1 {
+	if !p.reported && c < 1 {
 		setCounter(room, 1)
-		p.incremented = true
+		p.reported = true
 	}
 }
 
