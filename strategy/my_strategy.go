@@ -30,7 +30,7 @@ type prisoner struct {
 	// reporter fields.
 	initialState         int
 	initialStateModified bool
-	reported          bool
+	reported             bool
 }
 
 func (p *prisoner) Enter(room rule.Room) {
