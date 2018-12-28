@@ -95,8 +95,8 @@ func getCounter(room rule.Room) int {
 
 func setCounter(room rule.Room, c int) {
 	sa, sb := room.TakeSwitchA(), room.TakeSwitchB()
-	a := (c % 2) != 0
-	b := (c / 2) != 0
+	a := (c & 1) != 0
+	b := (c & 2) != 0
 	if sa.State() != a {
 		sa.Toggle()
 	}
