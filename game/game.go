@@ -151,8 +151,14 @@ func (r *Result) Merge(other *Result) *Result {
 	}
 	r.Score += other.Score
 
-	if !r.Success || !other.Success {
+	if !other.Success {
+		r.Success = false
+		r.Message = other.Message
 		r.Score = 0
+	}
+
+	if r.Message == "" {
+		r.Message = other.Message
 	}
 
 	return r
@@ -256,8 +262,13 @@ func (g *game) UsedSwitches() uint64 {
 }
 
 func (g *game) Result() *Result {
+	msg := "All games passed"
+	if !g.Success() {
+		msg = "Some game failed"
+	}
 	r := &Result{
 		Success:      g.Success(),
+		Message:      msg,
 		Steps:        g.Steps(),
 		UsedSwitches: g.UsedSwitches(),
 	}

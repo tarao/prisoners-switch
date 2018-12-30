@@ -16,7 +16,9 @@ import (
 
 func main() {
 	var logLevelName string
+	var patient bool
 	flag.StringVar(&logLevelName, "log-level", "result", "specify events to be logged.\n\"silent\", \"result\", \"changes\", \"all\", \"debug\"")
+	flag.BoolVar(&patient, "patient", false, "wait until every game finishes or times out\nand ignore failure in mortal games.")
 	flag.Parse()
 
 	logLevel := game.LogResult
@@ -69,8 +71,8 @@ func main() {
 			resumableStrategy := newResumableStrategy(s)
 			strategies.append(resumableStrategy)
 			success := <-g.Start(resumableStrategy, rule.TotalPrisoners)
-			if !success {
-				exit(false, "Some game failed", fairGames)
+			if !success && !patient {
+				exitByGames(fairGames)
 			}
 		})
 		done <- struct{}{}
@@ -81,8 +83,12 @@ func main() {
 			resumableStrategy := newResumableStrategy(s)
 			strategies.append(resumableStrategy)
 			success := <-g.Start(resumableStrategy, rule.TotalPrisoners)
-			if !success {
-				exit(false, "Some game failed", fairGames)
+			if !success && !patient {
+				result := &game.Result{
+					Success: g.Result().Success,
+					Message: g.Result().Message,
+				}
+				exitByResult(result.Merge(gameResult(fairGames)))
 			}
 		})
 	}()
@@ -94,22 +100,22 @@ func main() {
 		for _, g := range mortalGames {
 			g.Stop()
 		}
-		exit(true, "All games passed", fairGames)
+		exitByGames(fairGames)
 	case <-time.After(300 * time.Second):
 		exit(false, "Timed out", fairGames)
 	}
 }
 
-func exit(success bool, msg string, games []game.Game) {
-	result := game.Result{
-		Success: success,
-		Message: msg,
-	}
+func gameResult(games []game.Game) *game.Result {
+	result := &game.Result{Success: true}
 	for _, g := range games {
 		result.Merge(g.Result())
 	}
 	result.Score /= uint64(len(games))
+	return result
+}
 
+func exitByResult(result *game.Result) {
 	jsonResult, err := json.Marshal(result)
 	if err != nil {
 		panic(err)
@@ -122,6 +128,20 @@ func exit(success bool, msg string, games []game.Game) {
 	} else {
 		os.Exit(1)
 	}
+}
+
+func exitByGames(games []game.Game) {
+	exitByResult(gameResult(games))
+}
+
+func exit(success bool, msg string, games []game.Game) {
+	result := &game.Result{
+		Success: success,
+		Message: msg,
+	}
+	result.Merge(gameResult(games))
+
+	exitByResult(result)
 }
 
 func forEachGame(gs []game.Game, f func(g game.Game)) {
