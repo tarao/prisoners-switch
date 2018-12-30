@@ -35,6 +35,7 @@ func main() {
 
 	games := make([]game.Game, 0)
 	fairGames := make([]game.Game, 0)
+	mortalGames := make([]game.Game, 0)
 
 	for i := 0; i < totalGames; i++ {
 		g := game.NewFairGame(&game.Logger{
@@ -53,6 +54,7 @@ func main() {
 			Writer:   os.Stderr,
 		})
 		games = append(games, g)
+		mortalGames = append(mortalGames, g)
 	}
 
 	s := strategy.MyNewStrategy()
@@ -61,7 +63,7 @@ func main() {
 	done := make(chan struct{})
 
 	go func() {
-		forEachGame(games, func(g game.Game) {
+		forEachGame(fairGames, func(g game.Game) {
 			resumableStrategy := newResumableStrategy(s)
 			strategies.append(resumableStrategy)
 			success := <-g.Start(resumableStrategy, rule.TotalPrisoners)
@@ -72,10 +74,24 @@ func main() {
 		done <- struct{}{}
 	}()
 
+	go func() {
+		forEachGame(mortalGames, func(g game.Game) {
+			resumableStrategy := newResumableStrategy(s)
+			strategies.append(resumableStrategy)
+			success := <-g.Start(resumableStrategy, rule.TotalPrisoners)
+			if !success {
+				exit(false, "Some game failed", fairGames)
+			}
+		})
+	}()
+
 	strategies.yield(rule.TotalPrisoners)
 
 	select {
 	case <-done:
+		for _, g := range mortalGames {
+			g.Stop()
+		}
 		exit(true, "All games passed", fairGames)
 	case <-time.After(300 * time.Second):
 		exit(false, "Timed out", fairGames)
