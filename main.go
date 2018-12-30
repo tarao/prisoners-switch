@@ -16,7 +16,7 @@ import (
 
 func main() {
 	var logLevelName string
-	flag.StringVar(&logLevelName, "log-level", "result", "specify events to be logged (result, changes, all, debug)")
+	flag.StringVar(&logLevelName, "log-level", "result", "specify events to be logged.\n\"silent\", \"result\", \"changes\", \"all\", \"debug\"")
 	flag.Parse()
 
 	logLevel := game.LogResult
@@ -29,6 +29,8 @@ func main() {
 		logLevel = game.LogChanges
 	case "result":
 		logLevel = game.LogResult
+	case "silent":
+		logLevel = game.LogSilent
 	}
 
 	totalGames := 100
