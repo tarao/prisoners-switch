@@ -84,11 +84,7 @@ func main() {
 			strategies.append(resumableStrategy)
 			success := <-g.Start(resumableStrategy, rule.TotalPrisoners)
 			if !success && !patient {
-				result := &game.Result{
-					Success: g.Result().Success,
-					Message: g.Result().Message,
-				}
-				exitByResult(result.Merge(gameResult(fairGames)))
+				exit(false, g.Result().Message, fairGames)
 			}
 		})
 	}()
