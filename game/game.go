@@ -151,8 +151,14 @@ func (r *Result) Merge(other *Result) *Result {
 	}
 	r.Score += other.Score
 
-	if !r.Success || !other.Success {
+	if !other.Success {
+		r.Success = false
+		r.Message = other.Message
 		r.Score = 0
+	}
+
+	if r.Message == "" {
+		r.Message = other.Message
 	}
 
 	return r
@@ -161,6 +167,7 @@ func (r *Result) Merge(other *Result) *Result {
 // Game is the interface of the game
 type Game interface {
 	Start(strategy rule.Strategy, numPrisoners int) <-chan bool
+	Stop()
 	Result() *Result
 }
 
@@ -182,6 +189,7 @@ type game struct {
 	steps   uint64
 	success uint64
 	logger  *Logger
+	stopped int32
 }
 
 func (g *game) initialize(strategy rule.Strategy, numPrisoners int) <-chan bool {
@@ -203,6 +211,7 @@ func (g *game) initialize(strategy rule.Strategy, numPrisoners int) <-chan bool 
 		}
 		g.logger.printResult(g.Result())
 
+		g.Stop()
 		finish <- r
 	}()
 
@@ -253,12 +262,25 @@ func (g *game) UsedSwitches() uint64 {
 }
 
 func (g *game) Result() *Result {
+	msg := "All games passed"
+	if !g.Success() {
+		msg = "Some game failed"
+	}
 	r := &Result{
 		Success:      g.Success(),
+		Message:      msg,
 		Steps:        g.Steps(),
 		UsedSwitches: g.UsedSwitches(),
 	}
 	return r.calcScore()
+}
+
+func (g *game) Stop() {
+	atomic.AddInt32(&g.stopped, 1)
+}
+
+func (g *game) IsStopped() bool {
+	return atomic.LoadInt32(&g.stopped) > 0
 }
 
 // NewFairGame creates a new game in which prisoner can win with some strategy
@@ -279,7 +301,7 @@ func (g *fairGame) Start(strategy rule.Strategy, numPrisoners int) <-chan bool {
 			g.letEnter(p)
 			g.logger.printDebugInfo(fmt.Sprintf("switch A: %v", g.room.btnA.state))
 			g.logger.printDebugInfo(fmt.Sprintf("switch B: %v", g.room.btnB.state))
-			if g.Success() {
+			if g.Success() || g.IsStopped() {
 				break
 			}
 		}
@@ -288,17 +310,17 @@ func (g *fairGame) Start(strategy rule.Strategy, numPrisoners int) <-chan bool {
 	return ch
 }
 
-// NewMotalGame creates a new game in which prisoner can never win
-func NewMotalGame(logger *Logger) Game {
-	return &motalGame{newGame(logger), -1}
+// NewMortalGame creates a new game in which prisoner can never win
+func NewMortalGame(logger *Logger) Game {
+	return &mortalGame{newGame(logger), -1}
 }
 
-type motalGame struct {
+type mortalGame struct {
 	*game
 	skippedPrisoner int32
 }
 
-func (g *motalGame) Start(strategy rule.Strategy, numPrisoners int) <-chan bool {
+func (g *mortalGame) Start(strategy rule.Strategy, numPrisoners int) <-chan bool {
 	result := make(chan bool, 2)
 
 	ch := g.initialize(strategy, numPrisoners)
@@ -313,7 +335,7 @@ func (g *motalGame) Start(strategy rule.Strategy, numPrisoners int) <-chan bool 
 				g.logger.printDebugInfo(fmt.Sprintf("switch A: %v", g.room.btnA.state))
 				g.logger.printDebugInfo(fmt.Sprintf("switch B: %v", g.room.btnB.state))
 
-				if g.Steps() >= maxSteps {
+				if g.IsStopped() {
 					result <- true
 					break
 				}
