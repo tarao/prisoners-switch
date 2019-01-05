@@ -10,15 +10,24 @@ verbose_level="$VERBOSE_LEVEL_INFO"
 
 # Check if there in no violation on importing external packages
 
-imports_ok=0
-"$BIN"/check_imports || exit 1
+case "$1" in
+-debug|--debug)
+    shift
+    option="--log-level=debug"
+    ;;
+*)
+    imports_ok=0
+    "$BIN"/check_imports || exit 1
+    ;;
+esac
+
 imports_ok=1
 
 # Run
 
 cd "$ROOT"
 go build
-json=$(./prisoners-switch || true)
+json=$(./prisoners-switch "$@" || true)
 
 score=$(echo "$json" | jq -r '.score')
 steps=$(echo "$json" | jq -r '.steps')

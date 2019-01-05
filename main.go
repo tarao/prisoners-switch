@@ -16,7 +16,9 @@ import (
 
 func main() {
 	var logLevelName string
-	flag.StringVar(&logLevelName, "log-level", "result", "specify events to be logged (result, changes, all, debug)")
+	var patient bool
+	flag.StringVar(&logLevelName, "log-level", "result", "specify events to be logged.\n\"silent\", \"result\", \"changes\", \"all\", \"debug\"")
+	flag.BoolVar(&patient, "patient", false, "wait until every game finishes or times out\nand ignore failure in mortal games.")
 	flag.Parse()
 
 	logLevel := game.LogResult
@@ -29,12 +31,15 @@ func main() {
 		logLevel = game.LogChanges
 	case "result":
 		logLevel = game.LogResult
+	case "silent":
+		logLevel = game.LogSilent
 	}
 
 	totalGames := 100
 
 	games := make([]game.Game, 0)
 	fairGames := make([]game.Game, 0)
+	mortalGames := make([]game.Game, 0)
 
 	for i := 0; i < totalGames; i++ {
 		g := game.NewFairGame(&game.Logger{
@@ -47,12 +52,13 @@ func main() {
 	}
 
 	for i := 0; i < totalGames; i++ {
-		g := game.NewMotalGame(&game.Logger{
+		g := game.NewMortalGame(&game.Logger{
 			Game:     fmt.Sprintf("#%d", i+len(fairGames)+1),
 			LogLevel: logLevel,
 			Writer:   os.Stderr,
 		})
 		games = append(games, g)
+		mortalGames = append(mortalGames, g)
 	}
 
 	s := strategy.MyNewStrategy()
@@ -61,37 +67,51 @@ func main() {
 	done := make(chan struct{})
 
 	go func() {
-		forEachGame(games, func(g game.Game) {
+		forEachGame(fairGames, func(g game.Game) {
 			resumableStrategy := newResumableStrategy(s)
 			strategies.append(resumableStrategy)
 			success := <-g.Start(resumableStrategy, rule.TotalPrisoners)
-			if !success {
-				exit(false, "Some game failed", fairGames)
+			if !success && !patient {
+				exitByGames(fairGames)
 			}
 		})
 		done <- struct{}{}
+	}()
+
+	go func() {
+		forEachGame(mortalGames, func(g game.Game) {
+			resumableStrategy := newResumableStrategy(s)
+			strategies.append(resumableStrategy)
+			success := <-g.Start(resumableStrategy, rule.TotalPrisoners)
+			if !success && !patient {
+				exit(false, g.Result().Message, fairGames)
+			}
+		})
 	}()
 
 	strategies.yield(rule.TotalPrisoners)
 
 	select {
 	case <-done:
-		exit(true, "All games passed", fairGames)
+		for _, g := range mortalGames {
+			g.Stop()
+		}
+		exitByGames(fairGames)
 	case <-time.After(300 * time.Second):
 		exit(false, "Timed out", fairGames)
 	}
 }
 
-func exit(success bool, msg string, games []game.Game) {
-	result := game.Result{
-		Success: success,
-		Message: msg,
-	}
+func gameResult(games []game.Game) *game.Result {
+	result := &game.Result{Success: true}
 	for _, g := range games {
 		result.Merge(g.Result())
 	}
 	result.Score /= uint64(len(games))
+	return result
+}
 
+func exitByResult(result *game.Result) {
 	jsonResult, err := json.Marshal(result)
 	if err != nil {
 		panic(err)
@@ -104,6 +124,20 @@ func exit(success bool, msg string, games []game.Game) {
 	} else {
 		os.Exit(1)
 	}
+}
+
+func exitByGames(games []game.Game) {
+	exitByResult(gameResult(games))
+}
+
+func exit(success bool, msg string, games []game.Game) {
+	result := &game.Result{
+		Success: success,
+		Message: msg,
+	}
+	result.Merge(gameResult(games))
+
+	exitByResult(result)
 }
 
 func forEachGame(gs []game.Game, f func(g game.Game)) {

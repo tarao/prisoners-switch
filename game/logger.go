@@ -9,8 +9,11 @@ import (
 type LogLevel int
 
 const (
+	// LogSilent logs nothing
+	LogSilent LogLevel = iota
+
 	// LogResult logs only the result of the game
-	LogResult LogLevel = iota
+	LogResult
 
 	// LogChanges logs only change to the game state
 	LogChanges

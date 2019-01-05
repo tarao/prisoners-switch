@@ -23,7 +23,7 @@ if you lose.
   - If it is false, i.e., someone has not yet visited the _switch room_, then you lose the game.
 - The initial states of the _two switches_ are decided at random.
 
-Before starting the game, you all may meet together and plan a strategy.  How can you win the game?
+Before starting the game, you all may meet together and plan a strategy.  Provide a strategy which guarantees you can always win the game.
 
 ----
 

@@ -12,6 +12,7 @@ func MyNewStrategy() rule.Strategy {
 type myStrategy struct {
 }
 
+// Each prisoner receives unique number between 0 and rule.TotalPrisoners -1. Order is not guaranteed.
 func (s *myStrategy) NewPrisoner(number int, shout chan rule.Shout) rule.Prisoner {
 	return &prisoner{shout: shout}
 }
